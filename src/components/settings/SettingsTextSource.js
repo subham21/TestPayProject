@@ -34,7 +34,7 @@ export const tagsStyles = {
 export const aboutTextHtml = {
   html: `
   <p>Welcome to TeryTech, your number one source for all refurbished and brand new electronic products.</p>
-  <p>We're dedicated to providing you the very best of our products, including desktop, laptop, CPU, RAM memory, hard disk, SSD memory, motherboard, processor, printer and more.</p>
+  <p>We're dedicated to providing you with the very best of our products, including desktops, laptops, CPU, RAM memory, hard disk, SSD memory, motherboard, processor, printer, and more.</p>
   <p>Founded in 2022, TeryTech hopes to go a long way to provide cutomer services and products. We hope you enjoy our products as much as we enjoy offering them to you. If you have any questions or comments, please don't hesitate to contact us.</p>
       `,
 };
