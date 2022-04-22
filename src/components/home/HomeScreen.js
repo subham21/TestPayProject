@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  useColorScheme,
   Dimensions,
   StatusBar,
   TouchableOpacity,
@@ -11,35 +10,68 @@ import {
   FlatList,
   ScrollView,
   Image,
-  Pressable,
+  ToastAndroid,
+  ActivityIndicator,
 } from 'react-native';
 import TabBar from '../tabBar/TabBar';
 import {colours, productItems} from '../theme/colour';
+import firestore from '@react-native-firebase/firestore';
 
 const windowWidth = Dimensions.get('window').width / 2 - 30;
 const cardHeight = 250;
 
 const HomeScreen = ({navigation}) => {
-  const isDarkMode = useColorScheme() === 'dark';
+  //const isDarkMode = useColorScheme() === 'dark';
+  const isDarkMode = false;
   const setColorBag = isDarkMode
     ? colours.darkAppBackGround
     : colours.lightAppBackGround;
   const setColorText = isDarkMode ? colours.white : colours.backgroundDark;
   const setColorgrey = isDarkMode ? colours.backgroundMedium : colours.white;
-  const setWordColor = isDarkMode ? colours.blue : colours.red;
+  //const setWordColor = isDarkMode ? colours.blue : colours.red;
 
   const [catergoryIndex, setCategoryIndex] = useState(0);
+  const categories = [
+    'All',
+    'Hard Disk',
+    'Mini PC',
+    'Motherboard',
+    'Processor',
+    'RAM',
+  ];
   //const catIndex = 0;
-  const categories = ['All', 'Desktop', 'Laptop', 'Server'];
-  //["All", "Hard Disk", "Mini PC", "Motherboard", "Processor", "RAM"];
+  //['All', 'Desktop', 'Laptop', 'Server'];
+  //['All', 'Hard Disk', 'Mini PC', 'Motherboard', 'Processor', 'RAM'];
   //["All", "Laptop", "CPU", "Computer Accessories"];
 
   const [productList, setProductList] = useState([]);
   const [allProductList, setAllProductList] = useState([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
 
-  const getDataFromDB = () => {
+  const getDataFromLocalDB = () => {
     setProductList(productItems);
     setAllProductList(productItems);
+  };
+
+  const getDataFromDB = async () => {
+    try {
+      const products = await firestore().collection('TeryProducts').get();
+      const productsArray = [];
+      for (var snap of products.docs) {
+        var data = snap.data();
+        data.ID = snap.id;
+        productsArray.push({
+          ...data,
+        });
+        if (productsArray.length === products.docs.length) {
+          setLoadingActivity(false);
+          setProductList(productsArray);
+          setAllProductList(productsArray);
+        }
+      }
+    } catch (error) {
+      ToastAndroid.show('Error!' + error, ToastAndroid.SHORT);
+    }
   };
 
   useEffect(() => {
@@ -53,7 +85,7 @@ const HomeScreen = ({navigation}) => {
     allProductList.forEach(item => {
       if (categories[index] === 'All') {
         productsSelectArray.push(item);
-      } else if (item.productFor === categories[index]) {
+      } else if (item.productType === categories[index]) {
         productsSelectArray.push(item);
       }
     });
@@ -95,6 +127,16 @@ const HomeScreen = ({navigation}) => {
         onPress={() =>
           navigation.navigate('Details', {
             itemID: item.productID,
+            itemImg: item.productImageURL,
+            itemTitle:
+              item.productCompany +
+              ' ' +
+              item.productModel +
+              ' ' +
+              item.productType,
+            itemDescription: item.productFor + ' ' + item.productDescription,
+            itemPrice: item.productPrice,
+            itemQuantity: item.productQuantity,
           })
         }>
         <View style={styles.card}>
@@ -110,7 +152,11 @@ const HomeScreen = ({navigation}) => {
             <Text
               numberOfLines={2}
               style={[styles.cardTitleStyle, {color: setColorText}]}>
-              {item.productCompany + ' ' + item.productModel}
+              {item.productCompany +
+                ' ' +
+                item.productModel +
+                ' ' +
+                item.productType}
             </Text>
             <Text numberOfLines={2} style={{color: colours.green}}>
               {item.productPrice === 0
@@ -129,7 +175,7 @@ const HomeScreen = ({navigation}) => {
       <StatusBar backgroundColor={setColorBag} barStyle="dark-content" />
       <View style={styles.headerView}>
         <Text style={[styles.headerTitleView, {color: setColorText}]}>
-          TeryTech Technologies
+          TeryTech Store
         </Text>
         <Text style={[styles.headerNextTitleView, {color: setColorText}]}>
           Shop for Refurbished Laptops, Computers & Accessories and more.
@@ -137,6 +183,12 @@ const HomeScreen = ({navigation}) => {
       </View>
 
       <CategoryList />
+
+      {loadingActivity && (
+        <View style={styles.loadingActivityView}>
+          <ActivityIndicator />
+        </View>
+      )}
 
       <FlatList
         key={'#'}
@@ -191,7 +243,7 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginHorizontal: 40, // to fix space between items
+    marginHorizontal: 25, // to fix space between items
   },
   categoryTextSelected: {
     color: colours.green,
@@ -244,26 +296,10 @@ const styles = StyleSheet.create({
   IconBehave: {
     padding: 14,
   },
+  loadingActivityView: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
 export default HomeScreen;
-
-/*
-<Icon name="back" size={30} color="#87d69f" />
-
-bottom bar : Home
-Cart
-Profile
-// horizontal FlatList
-<FlatList
-key={'@'}
-contentContainerStyle={styles.flatContainerStyle2}
-data={categoriesData}
-horizontal
-showsHorizontalScrollIndicator={false}
-keyExtractor={item => item.id}
-renderItem={({item}) => {
-return <CategoryList2 item={item} />;
-}}
-/>
-*/

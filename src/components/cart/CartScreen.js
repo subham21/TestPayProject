@@ -4,25 +4,16 @@ import {
   Text,
   View,
   StyleSheet,
-  useColorScheme,
   ScrollView,
   TouchableOpacity,
   Image,
   ToastAndroid,
 } from 'react-native';
-import {colours, productItems} from '../theme/colour';
+import {colours} from '../theme/colour';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CartScreen = ({navigation}) => {
-  const isDarkMode = useColorScheme() === 'dark';
-  const setColorBag = isDarkMode
-    ? colours.darkAppBackGround
-    : colours.lightAppBackGround;
-  const setColorText = isDarkMode ? colours.white : colours.backgroundDark;
-  const setColorgrey = isDarkMode ? colours.backgroundMedium : colours.white;
-  const setWordColor = isDarkMode ? colours.blue : colours.red;
-
   const [product, setProduct] = useState();
   const [total, setTotal] = useState(null);
 
@@ -37,16 +28,10 @@ const CartScreen = ({navigation}) => {
   const getDataFromDB = async () => {
     let items = await AsyncStorage.getItem('@cartItems');
     items = JSON.parse(items);
-    let productData = [];
+
     if (items) {
-      productItems.forEach(data => {
-        if (items.includes(data.productID)) {
-          productData.push(data);
-          return;
-        }
-      });
-      setProduct(productData);
-      getTotal(productData);
+      setProduct(items);
+      getTotal(items);
     } else {
       setProduct(false);
       getTotal(false);
@@ -56,27 +41,11 @@ const CartScreen = ({navigation}) => {
   const getTotal = productData => {
     let totalAmount = 0;
     for (let index = 0; index < productData.length; index++) {
-      let productPrice = productData[index].productPrice;
-      totalAmount = totalAmount + productPrice;
+      let productPrice =
+        productData[index].itemPrice * productData[index].itemQuantity;
+      totalAmount += productPrice;
     }
     setTotal(totalAmount);
-  };
-
-  const removeItemFromCart = async id => {
-    let itemArray = await AsyncStorage.getItem('@cartItems');
-    itemArray = JSON.parse(itemArray);
-    if (itemArray) {
-      let array = itemArray;
-      for (let index = 0; index < array.length; index++) {
-        if (array[index] === id) {
-          array.splice(index, 1);
-        }
-
-        console.log('arrayItems: ' + array);
-        //await AsyncStorage.setItem('@cartItems', JSON.stringify(array));
-        //getDataFromDB();
-      }
-    }
   };
 
   const checkOut = async () => {
@@ -86,29 +55,91 @@ const CartScreen = ({navigation}) => {
       return error;
     }
 
-    ToastAndroid.show('Items will be Deliverd SOON!', ToastAndroid.SHORT);
+    ToastAndroid.show('Items will be Deliverd soon!', ToastAndroid.SHORT);
 
-    navigation.navigate('Home');
+    navigation.goBack('Home');
+  };
+
+  const removeItemFromCart = async id => {
+    let itemArray = await AsyncStorage.getItem('@cartItems');
+    itemArray = JSON.parse(itemArray);
+    if (itemArray) {
+      let array = itemArray;
+      for (let index = 0; index < array.length; index++) {
+        if (array[index].itemID === id) {
+          array.splice(index, 1);
+        }
+
+        await AsyncStorage.setItem('@cartItems', JSON.stringify(array));
+        ToastAndroid.show('Item removed from cart.', ToastAndroid.SHORT);
+        getDataFromDB();
+      }
+    }
+  };
+
+  const cartProductMinusOne = id => {
+    for (let index = 0; index < product.length; index++) {
+      if (product[index].itemID === id) {
+        product[index].itemQuantity -= 1;
+        if (product[index].itemQuantity === 0) {
+          removeItemFromCart(id);
+        } else {
+          setQuantityValue();
+        }
+        break;
+      }
+    }
+  };
+
+  const cartProductPlusOne = id => {
+    for (let index = 0; index < product.length; index++) {
+      if (product[index].itemID === id) {
+        product[index].itemQuantity += 1;
+        if (
+          product[index].itemQuantity <= product[index].itemQuantityAvailable
+        ) {
+          setQuantityValue();
+        } else {
+          ToastAndroid.show(
+            'No more items quantity availabe to add in cart.',
+            ToastAndroid.SHORT,
+          );
+        }
+        break;
+      }
+    }
+  };
+
+  const setQuantityValue = async () => {
+    try {
+      await AsyncStorage.setItem('@cartItems', JSON.stringify(product));
+      getDataFromDB();
+    } catch (error) {
+      return error;
+    }
   };
 
   const renderProducts = data => {
     return (
-      <View
-        key={data.productID}
-        onPress={() => console.log('ProductInfo, productID: ' + data.productID)}
-        style={styles.listContentView}>
+      <View key={data.itemID} style={styles.listContentView}>
         <View style={styles.listContentImgView}>
           <Image
-            source={{uri: data.productImageURL}}
+            source={{uri: data.itemImg}}
             style={styles.listImgRenderView}
           />
         </View>
         <View style={styles.listTitleContentView}>
           <View>
-            <Text style={styles.listProductTitleText}>{data.productModel}</Text>
+            <Text numberOfLines={2} style={styles.listProductTitleText}>
+              {data.itemTitle}
+            </Text>
             <View style={styles.listProductPriceView}>
-              <Text style={styles.listProductPriceText}>
-                &#8377;{data.productPrice}
+              <Text
+                style={[
+                  styles.listProductPriceText,
+                  styles.textBasicLightColor,
+                ]}>
+                &#8377;{data.itemPrice}
               </Text>
               <Text>
                 {/* (~&#8377;
@@ -119,15 +150,20 @@ const CartScreen = ({navigation}) => {
           <View style={styles.listCartButtonView}>
             <View style={styles.listCartQuantityButtonView}>
               <View style={styles.listDecreaseCartButtonView}>
-                <Icon name="minus" style={styles.listDecreaseCartIconView} />
+                <TouchableOpacity
+                  onPress={() => cartProductMinusOne(data.itemID)}>
+                  <Icon name="minus" style={styles.listDecreaseCartIconView} />
+                </TouchableOpacity>
               </View>
-              <Text>1</Text>
+              <Text style={styles.textBasicColor}>{data.itemQuantity}</Text>
               <View style={styles.listIncreaseCartButtonView}>
-                <Icon name="plus" style={styles.listIncreaseCartIconView} />
+                <TouchableOpacity
+                  onPress={() => cartProductPlusOne(data.itemID)}>
+                  <Icon name="plus" style={styles.listIncreaseCartIconView} />
+                </TouchableOpacity>
               </View>
             </View>
-            <TouchableOpacity
-              onPress={() => removeItemFromCart(data.productID)}>
+            <TouchableOpacity onPress={() => removeItemFromCart(data.itemID)}>
               <Icon
                 name="delete-outline"
                 style={styles.listDeleteCartIconView}
@@ -146,12 +182,20 @@ const CartScreen = ({navigation}) => {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Icon name="chevron-left" style={styles.backButtonBorder} />
           </TouchableOpacity>
-          <Text style={styles.headerTitleView}>Order Details</Text>
+          <Text style={styles.headerTitleView}>Cart Details</Text>
           <View></View>
         </View>
         <Text style={styles.cartTitleView}>My Cart</Text>
         <View style={styles.paddingItemsView}>
-          {product ? product.map(renderProducts) : null}
+          {product ? (
+            product.length === 0 ? (
+              <Text style={styles.textBasicLightColor}>No items in cart.</Text>
+            ) : (
+              product.map(renderProducts)
+            )
+          ) : (
+            <Text style={styles.textBasicLightColor}>No items in cart...</Text>
+          )}
         </View>
         <View>
           <View style={styles.locationHeaderView}>
@@ -165,9 +209,11 @@ const CartScreen = ({navigation}) => {
                   />
                 </View>
                 <View>
-                  <Text style={styles.locationTextContent1}>50, K.M.Lane</Text>
+                  <Text style={styles.locationTextContent1}>
+                    Address Line 1
+                  </Text>
                   <Text style={styles.locationTextContent2}>
-                    Salkia, Howrah
+                    Address Line 2
                   </Text>
                 </View>
               </View>
@@ -182,13 +228,11 @@ const CartScreen = ({navigation}) => {
             </View>
             <View style={styles.orderTitleShip}>
               <Text style={styles.orderTextShip}>Shipping Tax</Text>
-              <Text style={styles.orderTextShipTotal}>&#8377;{total / 20}</Text>
+              <Text style={styles.orderTextShipTotal}>&#8377;0</Text>
             </View>
             <View style={styles.orderTotalTitleView}>
               <Text style={styles.orderTextTotalView}>Total</Text>
-              <Text style={styles.orderTextTotalAmount}>
-                &#8377;{total + total / 20}
-              </Text>
+              <Text style={styles.orderTextTotalAmount}>&#8377;{total}</Text>
             </View>
           </View>
         </View>
@@ -196,10 +240,20 @@ const CartScreen = ({navigation}) => {
       <View style={styles.payoutContentView}>
         <TouchableOpacity
           activeOpacity={0.6}
-          onPress={() => (total !== 0 ? console.log('CheckOut') : null)} //checkOut()
+          onPress={() =>
+            total === 0
+              ? ToastAndroid.show(
+                  'Items prices will be updated soon for purchase.',
+                  ToastAndroid.SHORT,
+                )
+              : ToastAndroid.show(
+                  'Items prices will be updated soon for purchase.',
+                  ToastAndroid.SHORT,
+                )
+          }
           style={styles.payoutButtonView}>
           <Text style={styles.payoutButtonTitleText}>
-            CHECKOUT (&#8377;{total + total / 20} )
+            CHECKOUT (&#8377;{total} )
           </Text>
         </TouchableOpacity>
       </View>
@@ -378,7 +432,7 @@ const styles = StyleSheet.create({
   },
   listContentView: {
     width: '100%',
-    height: 100,
+    height: 110,
     marginVertical: 6,
     flexDirection: 'row',
     alignItems: 'center',
@@ -405,6 +459,12 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'space-around',
   },
+  textBasicColor: {
+    color: colours.black,
+  },
+  textBasicLightColor: {
+    color: colours.backgroundDark,
+  },
   listProductTitleText: {
     fontSize: 14,
     maxWidth: '100%',
@@ -428,7 +488,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 3,
+    padding: 3, //extra styling
   },
   listCartQuantityButtonView: {
     flexDirection: 'row',
@@ -468,11 +528,3 @@ const styles = StyleSheet.create({
 });
 
 export default CartScreen;
-
-/*
-//get total price of all items in the cart
-
-profile screen grab email set to null
-add products to contextAPI for global use
-https://reactnavigation.org/docs/modal for delivery address
-*/

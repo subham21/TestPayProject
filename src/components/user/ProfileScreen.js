@@ -1,5 +1,5 @@
-import React, {useEffect} from 'react';
-import {View, Text, StyleSheet} from 'react-native';
+import React from 'react';
+import {View, Text, StyleSheet, ToastAndroid} from 'react-native';
 import FormButton from '../user/loginComponents/FormButton';
 import auth from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,19 +8,29 @@ const ProfileScreen = () => {
   const logout = async () => {
     try {
       await auth().signOut();
+      logUserOut();
     } catch (e) {
-      console.log(e);
+      ToastAndroid.show('Error!' + e, ToastAndroid.SHORT);
     }
   };
 
-  const getUserData = async () => {
-    const greetingInfo = await AsyncStorage.getItem('@userLogin');
-    console.log('userDAS: ' + greetingInfo);
+  const logUserOut = async () => {
+    try {
+      await AsyncStorage.removeItem('@userLogin');
+    } catch (error) {
+      ToastAndroid.show('Error!' + error, ToastAndroid.SHORT);
+      return error;
+    }
   };
 
-  useEffect(() => {
-    getUserData();
-  }, []);
+  // const getUserData = async () => {
+  //   const greetingInfo = await AsyncStorage.getItem('@userLogin');
+  //   console.log('userDAS: ' + greetingInfo);
+  // };
+
+  // useEffect(() => {
+  //   getUserData();
+  // }, []);
 
   return (
     <View style={styles.container}>

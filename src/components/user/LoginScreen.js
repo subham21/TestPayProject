@@ -1,7 +1,6 @@
-import React, {useContext} from 'react';
-import {View, Text, Image, StyleSheet, ScrollView} from 'react-native';
+import React from 'react';
+import {View, Text, StyleSheet, ScrollView, ToastAndroid} from 'react-native';
 import SocialButton from './loginComponents/SocialButton';
-//import {AuthContext} from '../auth/AuthProvider';
 import auth from '@react-native-firebase/auth';
 import {GoogleSignin} from '@react-native-google-signin/google-signin';
 
@@ -18,10 +17,16 @@ const LoginScreen = () => {
       await auth()
         .signInWithCredential(googleCredential)
         .catch(error => {
-          console.log('Something went wrong with sign up: ', error);
+          ToastAndroid.show(
+            'Something went wrong with sign up: ' + error,
+            ToastAndroid.SHORT,
+          );
         });
     } catch (error) {
-      console.log({error});
+      ToastAndroid.show(
+        'Something went wrong with sign up: ' + error,
+        ToastAndroid.SHORT,
+      );
     }
   };
 
@@ -34,13 +39,13 @@ const LoginScreen = () => {
       <Text style={styles.text}>TeryTech App</Text>
 
       <View>
-        <SocialButton
+        {/* <SocialButton
           buttonTitle="Sign In with Facebook"
           btnType="facebook"
           color="#4867aa"
           backgroundColor="#e6eaf4"
           onPress={() => console.log('fb login')}
-        />
+        /> */}
 
         <SocialButton
           buttonTitle="Sign In with Google"

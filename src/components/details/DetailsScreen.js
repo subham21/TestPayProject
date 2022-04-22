@@ -1,54 +1,70 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-import React, {useState, useEffect} from 'react';
+import React from 'react';
 import {
   Text,
   View,
   StyleSheet,
-  useColorScheme,
   ScrollView,
   TouchableOpacity,
   Image,
   ToastAndroid,
 } from 'react-native';
-import {colours, productItems} from '../theme/colour';
+import {colours} from '../theme/colour';
 import {windowWidth} from '../../assets/Dimensions';
 import Entypo from 'react-native-vector-icons/Entypo';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const DetailsScreen = ({route, navigation}) => {
-  const isDarkMode = useColorScheme() === 'dark';
-  const setColorBag = isDarkMode
-    ? colours.darkAppBackGround
-    : colours.lightAppBackGround;
-  const setColorText = isDarkMode ? colours.white : colours.backgroundDark;
-  const setColorgrey = isDarkMode ? colours.backgroundMedium : colours.white;
-  const setWordColor = isDarkMode ? colours.blue : colours.red;
-  const {itemID} = route.params;
-  const [product, setProduct] = useState({});
+  const {itemID, itemImg, itemTitle, itemDescription, itemPrice, itemQuantity} =
+    route.params;
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      getDataFromDB();
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-
-  const getDataFromDB = async () => {
-    for (let index = 0; index < productItems.length; index++) {
-      if (productItems[index].productID === itemID) {
-        await setProduct(productItems[index]);
-        return;
-      }
-    }
-  };
-
-  const addToCart = async id => {
+  const addToCart = async () => {
     let itemArray = await AsyncStorage.getItem('@cartItems');
     itemArray = JSON.parse(itemArray);
+    var flag = false;
     if (itemArray) {
-      let array = itemArray;
-      array.push(id);
+      itemArray.map(data => {
+        if (data.itemID === itemID) {
+          flag = true;
+        }
+      });
+      if (flag) {
+        ToastAndroid.show('Item already present in cart.', ToastAndroid.SHORT);
+        navigation.goBack('Home');
+      } else {
+        let array = [
+          ...itemArray,
+          {
+            itemID: itemID,
+            itemImg: itemImg,
+            itemTitle: itemTitle,
+            itemPrice: itemPrice,
+            itemQuantity: 1,
+            itemQuantityAvailable: itemQuantity,
+          },
+        ];
+
+        try {
+          await AsyncStorage.setItem('@cartItems', JSON.stringify(array));
+          ToastAndroid.show(
+            'Item Added Successfully to cart.',
+            ToastAndroid.SHORT,
+          );
+          navigation.goBack('Home');
+        } catch (error) {
+          return error;
+        }
+      }
+    } else {
+      let array = [
+        {
+          itemID: itemID,
+          itemImg: itemImg,
+          itemTitle: itemTitle,
+          itemPrice: itemPrice,
+          itemQuantity: 1,
+          itemQuantityAvailable: itemQuantity,
+        },
+      ];
 
       try {
         await AsyncStorage.setItem('@cartItems', JSON.stringify(array));
@@ -56,20 +72,7 @@ const DetailsScreen = ({route, navigation}) => {
           'Item Added Successfully to cart',
           ToastAndroid.SHORT,
         );
-        navigation.navigate('Home');
-      } catch (error) {
-        return error;
-      }
-    } else {
-      let array = [];
-      array.push(id);
-      try {
-        await AsyncStorage.setItem('@cartItems', JSON.stringify(array));
-        ToastAndroid.show(
-          'Item Added Successfully to cart',
-          ToastAndroid.SHORT,
-        );
-        navigation.navigate('Home');
+        navigation.goBack('Home');
       } catch (error) {
         return error;
       }
@@ -86,30 +89,19 @@ const DetailsScreen = ({route, navigation}) => {
             </TouchableOpacity>
           </View>
           <View style={styles.imgViewBorder}>
-            <Image
-              source={{uri: product.productImageURL}}
-              style={styles.imgViewContainer}
-            />
+            <Image source={{uri: itemImg}} style={styles.imgViewContainer} />
           </View>
         </View>
         <View style={styles.productDetailsMargin}>
           <View style={styles.productTitleView}>
-            <Text style={styles.titleTextView}>
-              {product.productCompany +
-                ' ' +
-                product.productModel +
-                ' ' +
-                product.productType}
-            </Text>
+            <Text style={styles.titleTextView}>{itemTitle}</Text>
           </View>
-          <Text style={styles.detailsTextView}>
-            {product.productFor + ' ' + product.productDescription}
-          </Text>
+          <Text style={styles.detailsTextView}>{itemDescription}</Text>
           <View style={styles.pricePaddingView}>
             <Text style={styles.priceTextView}>
-              {product.productPrice === 0
+              {itemPrice === 0
                 ? 'Prices will be available soon'
-                : '₹ ' + product.productPrice}
+                : '₹ ' + itemPrice}
             </Text>
           </View>
         </View>
@@ -117,12 +109,10 @@ const DetailsScreen = ({route, navigation}) => {
       <View style={styles.addCartButtonView}>
         <TouchableOpacity
           activeOpacity={0.6}
-          onPress={() =>
-            product.productQuantity > 0 ? addToCart(product.productID) : null
-          }
+          onPress={() => (itemQuantity > 0 ? addToCart() : null)}
           style={styles.addCartButtonBorder}>
           <Text style={styles.addCartTitleView}>
-            {product.productQuantity > 0 ? 'Add to cart' : 'Not Avialable'}
+            {itemQuantity > 0 ? 'Add to cart' : 'Not Avialable'}
           </Text>
         </TouchableOpacity>
       </View>

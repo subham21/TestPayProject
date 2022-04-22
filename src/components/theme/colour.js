@@ -121,8 +121,8 @@ export const productItems = [
     productModel: 'Dual core 6th Generation',
     productImageURL:
       'https://static-01.daraz.com.bd/p/mdc/83bc2ef0af141fc357641c48b0aca2fe.jpg',
-    productQuantity: 7,
-    productPrice: 0,
+    productQuantity: 3,
+    productPrice: 98000,
     productModelNo: 'abc8',
     productDescription: '2GB RAM PC10',
   },
