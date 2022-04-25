@@ -16,6 +16,8 @@ import {
 import TabBar from '../tabBar/TabBar';
 import {colours, productItems} from '../theme/colour';
 import firestore from '@react-native-firebase/firestore';
+import RNBootSplash from 'react-native-bootsplash';
+import SplashScreen from '../Splash/SplashScreen';
 
 const windowWidth = Dimensions.get('window').width / 2 - 30;
 const cardHeight = 250;
@@ -48,6 +50,12 @@ const HomeScreen = ({navigation}) => {
   const [allProductList, setAllProductList] = useState([]);
   const [loadingActivity, setLoadingActivity] = useState(true);
 
+  useEffect(() => {
+    getDataFromLocalDB();
+    //getDataFromDB();
+    RNBootSplash.hide({fade: true});
+  }, []);
+
   const getDataFromLocalDB = () => {
     setProductList(productItems);
     setAllProductList(productItems);
@@ -73,10 +81,6 @@ const HomeScreen = ({navigation}) => {
       ToastAndroid.show('Error!' + error, ToastAndroid.SHORT);
     }
   };
-
-  useEffect(() => {
-    getDataFromDB();
-  }, []);
 
   const selectProductCategory = index => {
     setCategoryIndex(index);
@@ -173,6 +177,7 @@ const HomeScreen = ({navigation}) => {
     <SafeAreaView
       style={[styles.safeAreaStyle, {backgroundColor: setColorBag}]}>
       <StatusBar backgroundColor={setColorBag} barStyle="dark-content" />
+      <SplashScreen />
       <View style={styles.headerView}>
         <Text style={[styles.headerTitleView, {color: setColorText}]}>
           TeryTech Store

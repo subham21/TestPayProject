@@ -14,6 +14,7 @@ import OrderScreen from './src/components/orders/OrderScreen';
 const Stack = createNativeStackNavigator();
 
 const App = () => {
+  console.ignoredYellowBox = ['Warning: ViewPropTypes'];
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{headerShown: false}}>
@@ -33,6 +34,8 @@ const App = () => {
 export default App;
 
 /*
+check for offline toast alert
+//
 get total price of all items in the cart
 profile screen grab email set to null
 add products to contextAPI for global use
